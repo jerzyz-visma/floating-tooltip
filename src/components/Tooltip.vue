@@ -24,80 +24,91 @@
 </template>
 
 <script setup>
-import { nextTick, onRenderTriggered, ref, toRefs, watch, watchEffect } from "vue";
-import { arrow, autoPlacement, computePosition, offset, shift } from '@floating-ui/dom';
+import { nextTick, onMounted, onRenderTriggered, ref, toRefs, watch, watchEffect } from "vue";
+import { arrow, autoPlacement, computePosition, offset, shift, flip } from '@floating-ui/dom';
 import useWindowResize from "../hooks/useWindowResize";
 
 const props = defineProps({
-  offsetVal: {
+  offsetProp: {
     type: Number,
     default: 10
+  },
+  placementProp: {
+    type: String,
+    default: "bottom"
   }
 })
 
-const {offsetVal} = toRefs(props);
-const {width, height} = useWindowResize();
+const { offsetProp, placementProp } = toRefs(props);
+const { width, height } = useWindowResize();
 
 const buttonRef = ref()
 const tooltipRef = ref()
 const arrowRef = ref()
 const isOpened = ref(false)
-const placement = ref('left')
-
-const options = {
-  placement: placement.value,
-  middleware: [
-    // autoPlacement(),
-    shift(),
-    offset(10)
-  ]
-}
-
-async function toggleTooltip() {
-  isOpened.value = !isOpened.value
-
-  await nextTick();
-
-  console.log(tooltipRef.value, arrowRef.value);
-
-  if (!buttonRef.value || !tooltipRef.value) return
-
-  computePosition(
-    buttonRef.value,
-    tooltipRef.value,
-    options
-  ).then(({x, y}) => {
-    Object.assign(tooltipRef.value.style, {
-      left: `${x}px`,
-      top: `${y}px`
-    })
-  })
-}
 
 async function updatePosition() {
-  if (!buttonRef.value || !tooltipRef.value) return
-
-  const {x, y} = await computePosition(
+  // if (!buttonRef.value || !tooltipRef.value) return
+  const { x, y, placement, middlewareData } = await computePosition(
     buttonRef.value,
     tooltipRef.value,
-    options,
+    {
+      placement: placementProp.value,
+      middleware: [
+        shift(),
+        flip(),
+        offset(offsetProp.value),
+        arrow({
+          element: arrowRef.value
+        })
+      ]
+    }
   );
 
   Object.assign(tooltipRef.value.style, {
     left: `${x}px`,
     top: `${y}px`,
   });
+
+  const { x: arrowX, y: arrowY } = middlewareData.arrow;
+
+  console.log('arrows: ', arrowX, arrowY);
+  Object.assign(arrowRef.value.style, {
+    left: `${x}px`,
+    top: `${y}px`,
+    right: '',
+    bottom: ''
+  })
 }
 
+async function toggleTooltip() {
+  isOpened.value = !isOpened.value
+}
+
+
+watch(isOpened, (value) => {
+  if (value) {
+    nextTick(() => {
+      updatePosition()
+    })
+  }
+})
+
 watch([width, height], () => {
-  updatePosition();
+  if (isOpened.value) {
+    nextTick(() => {
+      updatePosition()
+    })
+  }
+})
+
+onMounted( () => {
+  console.log("props", offsetProp.value, placementProp.value)
 })
 
 onRenderTriggered(() => {
   console.log('render triggered');
 })
-
-
 </script>
 
 <style>
