@@ -3,21 +3,27 @@
     id="button"
     ref="buttonRef"
     aria-describedby="tooltip"
-    @click="toggleTooltip">
+    @click="onClick"
+    @mouseenter="onHover"
+    @mouseout="onLeave"
+  >
     My button
   </button>
-  <teleport to="#floating-container">
+  <teleport to="body">
     <transition name="fade">
       <div
         v-if="isOpened"
         id="tooltip"
         ref="tooltipRef"
-        role="tooltip">
-        My tooltip
-        <div
-          id="arrow"
-          ref="arrowRef"
-        />
+        role="tooltip"
+        @mouseenter="onHover"
+        @mouseout="onLeave"
+      >
+        <p>My tooltip</p>
+<!--        <div-->
+<!--          id="arrow"-->
+<!--          ref="arrowRef"-->
+<!--        />-->
       </div>
     </transition>
   </teleport>
@@ -31,7 +37,7 @@ import useWindowResize from "../hooks/useWindowResize";
 const props = defineProps({
   offsetProp: {
     type: Number,
-    default: 10
+    default: 0
   },
   placementProp: {
     type: String,
@@ -70,19 +76,40 @@ async function updatePosition() {
     top: `${y}px`,
   });
 
-  const { x: arrowX, y: arrowY } = middlewareData.arrow;
-
-  console.log('arrows: ', arrowX, arrowY);
-  Object.assign(arrowRef.value.style, {
-    left: `${x}px`,
-    top: `${y}px`,
-    right: '',
-    bottom: ''
-  })
+  // const { x: arrowX, y: arrowY } = middlewareData.arrow;
+  //
+  // Object.assign(arrowRef.value.style, {
+  //   left: `${x}px`,
+  //   top: `${y}px`,
+  //   right: '',
+  //   bottom: ''
+  // })
 }
 
-async function toggleTooltip() {
+const getParentList = (element)  =>
+  element.parentElement === null
+    ? []
+    : [element.parentElement].concat(getParentList(element.parentElement))
+
+async function onClick() {
   isOpened.value = !isOpened.value
+}
+
+function onHover(event) {
+  isOpened.value = true
+}
+
+function onLeave(event) {
+  console.log('onLeave eventTarget', event.relatedTarget)
+  const parentList = getParentList(event.relatedTarget)
+  console.log('parentList', parentList)
+
+  const isTooltipHovered = parentList.some(
+    (el) => el === tooltipRef.value || el === buttonRef.value
+  )
+
+  if (isTooltipHovered) return;
+  isOpened.value = false;
 }
 
 
@@ -115,14 +142,29 @@ onRenderTriggered(() => {
 #tooltip {
   --arrow-size: 8px;
   position: absolute;
+  z-index: 1000;
   background: #222;
   color: white;
   font-weight: bold;
   padding: 5px;
   border-radius: 4px;
   font-size: 90%;
-  pointer-events: none;
 }
+
+#tooltip:hover {
+  background: rebeccapurple;
+}
+/*#tooltip::after {
+  content: '';
+  display: block;
+  background: rgba(0,0,0,.1);
+  width: calc(100% + 10px);
+  height: calc(100% + 10px);
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  z-index: 1;
+}*/
 
 #arrow {
   width: 0;
