@@ -7,10 +7,34 @@ import Tooltip from './components/Tooltip.vue'
 <template>
   <h1>Tooltip test</h1>
 
-  <Tooltip variant="warning">
-    <button>Tooltip trigger</button>
+  <Tooltip>
+    <button>Show default tooltip</button>
     <template #content>
-      <p>Named scoped Tooltip content <a href="#">link</a></p>
+      <strong>Tooltip title</strong>
+      <p>Default Tooltip <a href="#">link</a></p>
+    </template>
+  </Tooltip>
+  <br><br><br><br>
+  <Tooltip variant="warning">
+    <button>Show warning tooltip</button>
+    <template #content>
+      <strong>Tooltip title</strong>
+      <p>Warning Tooltip <a href="#">link</a></p>
+    </template>
+  </Tooltip>
+  <br><br><br><br>
+  <Tooltip variant="error">
+    <button>Show error tooltip</button>
+    <template #content>
+      <strong>Tooltip title</strong>
+      <p>Error Tooltip <a href="#">link</a></p>
+    </template>
+  </Tooltip>
+  <br><br><br><br>
+  <Tooltip variant="action">
+    <button>Show action tooltip</button>
+    <template #content>
+      <p>Action Tooltip <a href="#">link</a></p>
     </template>
   </Tooltip>
 </template>

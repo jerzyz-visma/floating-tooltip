@@ -23,7 +23,7 @@
         :class="classes"
       >
         <slot name="content">Default Tooltip content</slot>
-        <div class="tooltip-arrow" ref="arrowRef" />
+        <div class="arrow" ref="arrowRef" />
       </div>
     </transition>
   </teleport>
@@ -97,7 +97,7 @@ async function updatePosition() {
     top: arrowY != null ? `${arrowY}px` : '',
     right: '',
     bottom: '',
-    [staticSide]: '-4px'
+    [staticSide]: '-7px' // dependent on arrow side, adjust manually
   })
 }
 
@@ -150,7 +150,7 @@ onRenderTriggered(() => {
 })
 </script>
 
-<style>
+<style scoped>
 .tooltip-trigger {
   display: inline-block;
 }
@@ -166,7 +166,10 @@ onRenderTriggered(() => {
   --arrow-size: 12px;
   --offset: 10px;
   background: var(--tooltip-background);
-  border: 1px solid var(--tooltip-border-color);
+  border:
+    var(--tooltip-border-width)
+    var(--tooltip-border-style)
+    var(--tooltip-border-color);
   color: var(--tooltip-content-color);
   border-radius: var(--tooltip-border-radius);
   box-shadow: 0 5px 10px var(--tooltip-shadow);
@@ -178,9 +181,6 @@ onRenderTriggered(() => {
   text-align: center;
   z-index: 1000;
 }
-.tooltip:hover {
-  background: rebeccapurple;
-}
 .tooltip::before {
   content: '';
   display: block;
@@ -188,14 +188,24 @@ onRenderTriggered(() => {
   width:  calc(100% + var(--offset)*2);
   height: calc(100% + var(--offset)*2);
   position: absolute;
-  top: calc(var(--offset) * -1);
-  left: calc(var(--offset) *-1);
+  top: calc(var(--offset)*-1);
+  left: calc(var(--offset)*-1);
   z-index: -1;
 }
 
-.tooltip-arrow {
+.tooltip strong + p {
+  text-align: left;
+}
+
+.tooltip .arrow {
   position: absolute;
   background: var(--tooltip-background);
+  border:
+    var(--tooltip-border-width)
+    var(--tooltip-border-style)
+    var(--tooltip-border-color);
+  border-left: none;
+  border-top: none;
   width: var(--arrow-size);
   height: var(--arrow-size);
   transform: rotate(45deg);
@@ -204,24 +214,31 @@ onRenderTriggered(() => {
 :slotted(p) {
   margin: 0;
 }
-
-#arrow {
-  width: 0;
-  height: 0;
-  border-left: var(--arrow-size) solid transparent;
-  border-right: var(--arrow-size) solid transparent;
-  border-top: var(--arrow-size) solid tomato;
-  position: absolute;
-  top: 100%;
+:slotted(strong) {
+  color: var(--tooltip-title-color);
+  display: block;
+  text-align: left;
 }
 
-#arrow::before {
-  content: '';
-  display: inline-block;
-  position: absolute;
-  border-color: transparent;
-  border-style: solid;
-  border-width: 0 3px 3px 0;
+.tooltip-warning {
+  --tooltip-background: var(--orange-05);
+  --tooltip-border-color: var(--orange-40);
+  --tooltip-title-color: var(--orange-90);
+  --tooltip-shadow: rgba(242, 141, 0, 0.15);
+}
+
+.tooltip-error {
+  --tooltip-background: var(--neutral-05);
+  --tooltip-border-color: var(--red-70);
+  --tooltip-title-color: var(--red-80);
+  --tooltip-shadow: rgba(217, 54, 68, 0.15);
+}
+.tooltip-action {
+  --tooltip-background: var(--neutral-90);
+  --tooltip-border-color: var(--neutral-90);
+  --tooltip-title-color: var(--neutral-05);
+  --tooltip-content-color: var(--neutral-05);
+  padding: 6px 12px;
 }
 
 .fade-enter-active,
