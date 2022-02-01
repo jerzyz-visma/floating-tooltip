@@ -1,72 +1,79 @@
 <template>
-  <button
-    id="button"
-    ref="buttonRef"
+  <div
+    class="tooltip-trigger"
+    ref="triggerRef"
     aria-describedby="tooltip"
     @click="onClick"
     @mouseenter="onHover"
     @mouseout="onLeave"
+
   >
-    My button
-  </button>
+    <slot />
+  </div>
   <teleport to="body">
     <transition name="fade">
       <div
         v-if="isOpened"
-        id="tooltip"
+        class="tooltip"
         ref="tooltipRef"
         role="tooltip"
         @mouseenter="onHover"
         @mouseout="onLeave"
+        :style="cssVars"
+        :class="classes"
       >
-        <p>My tooltip</p>
-<!--        <div-->
-<!--          id="arrow"-->
-<!--          ref="arrowRef"-->
-<!--        />-->
+        <slot name="content">Default Tooltip content</slot>
+        <div class="tooltip-arrow" ref="arrowRef" />
       </div>
     </transition>
   </teleport>
 </template>
 
-<script setup>
-import { nextTick, onMounted, onRenderTriggered, ref, toRefs, watch, watchEffect } from "vue";
-import { arrow, autoPlacement, computePosition, offset, shift, flip } from '@floating-ui/dom';
+<script setup lang="ts">
+import { computed, nextTick, onMounted, onRenderTriggered, ref, toRefs, watch, watchEffect } from "vue";
+import { arrow, computePosition, shift, flip, offset } from '@floating-ui/dom';
 import useWindowResize from "../hooks/useWindowResize";
 
-const props = defineProps({
-  offsetProp: {
-    type: Number,
-    default: 0
-  },
-  placementProp: {
-    type: String,
-    default: "bottom"
-  }
-})
+interface Props {
+  variant?: string,
+  offsetProp?: number,
+  placementProp?: string,
+}
+type Variants = ''|'error'|'warning'|'action'
 
-const { offsetProp, placementProp } = toRefs(props);
+const { variant, offsetProp = 10, placementProp = 'top'} = defineProps<Props>()
+
+// const { offsetProp, placementProp } = toRefs(props);
 const { width, height } = useWindowResize();
 
-const buttonRef = ref()
-const tooltipRef = ref()
-const arrowRef = ref()
+const triggerRef = ref<HTMLElement | null>(null);
+const tooltipRef = ref<HTMLElement | null>(null);
+const arrowRef = ref<HTMLElement | null>(null);
 const isOpened = ref(false)
 
+const cssVars = computed(() =>
+  `--offset: ${offsetProp}px`
+);
+
+const classes = computed(() => {
+  return {
+    [`tooltip-${variant}`]: Boolean(variant)
+  }
+});
+
 async function updatePosition() {
-  // if (!buttonRef.value || !tooltipRef.value) return
+  if (!triggerRef.value || !tooltipRef.value) return
+  console.log(arrowRef.value)
   const { x, y, placement, middlewareData } = await computePosition(
-    buttonRef.value,
+    triggerRef.value,
     tooltipRef.value,
     {
-      placement: placementProp.value,
+      placement: placementProp,
       middleware: [
-        shift(),
+        offset(offsetProp), // Middleware behavior is dependent on order.
         flip(),
-        offset(offsetProp.value),
-        arrow({
-          element: arrowRef.value
-        })
+        shift({ padding: 5 }),
+        arrow({ element: arrowRef.value })
       ]
     }
   );
@@ -76,42 +83,47 @@ async function updatePosition() {
     top: `${y}px`,
   });
 
-  // const { x: arrowX, y: arrowY } = middlewareData.arrow;
-  //
-  // Object.assign(arrowRef.value.style, {
-  //   left: `${x}px`,
-  //   top: `${y}px`,
-  //   right: '',
-  //   bottom: ''
-  // })
+  const { x: arrowX, y: arrowY } = middlewareData.arrow;
+
+  const staticSide = {
+    top: 'bottom',
+    right: 'left',
+    bottom: 'top',
+    left: 'right',
+  }[placement.split('-')[0]];
+
+  Object.assign(arrowRef.value.style, {
+    left: arrowX != null ? `${arrowX}px` : '',
+    top: arrowY != null ? `${arrowY}px` : '',
+    right: '',
+    bottom: '',
+    [staticSide]: '-4px'
+  })
 }
 
-const getParentList = (element)  =>
+const getParentList = (element: HTMLElement): HTMLElement[] =>
   element.parentElement === null
     ? []
-    : [element.parentElement].concat(getParentList(element.parentElement))
+    : [element.parentElement].concat(getParentList(element.parentElement));
 
 async function onClick() {
   isOpened.value = !isOpened.value
 }
 
-function onHover(event) {
+function onHover(event: MouseEvent) {
   isOpened.value = true
 }
 
-function onLeave(event) {
-  console.log('onLeave eventTarget', event.relatedTarget)
-  const parentList = getParentList(event.relatedTarget)
-  console.log('parentList', parentList)
+function onLeave(event: MouseEvent) {
+  const parentList = getParentList(event.relatedTarget as HTMLElement)
 
   const isTooltipHovered = parentList.some(
-    (el) => el === tooltipRef.value || el === buttonRef.value
-  )
+    (el) => el === tooltipRef.value || el === triggerRef.value
+  ) || event.relatedTarget === tooltipRef.value
 
   if (isTooltipHovered) return;
   isOpened.value = false;
 }
-
 
 watch(isOpened, (value) => {
   if (value) {
@@ -139,32 +151,59 @@ onRenderTriggered(() => {
 </script>
 
 <style>
-#tooltip {
-  --arrow-size: 8px;
-  position: absolute;
-  z-index: 1000;
-  background: #222;
-  color: white;
-  font-weight: bold;
-  padding: 5px;
-  border-radius: 4px;
-  font-size: 90%;
+.tooltip-trigger {
+  display: inline-block;
 }
-
-#tooltip:hover {
+.tooltip {
+  --tooltip-background: var(--neutral-05);
+  --tooltip-border-color: var(--neutral-70);
+  --tooltip-content-color: var(--neutral-90);
+  --tooltip-title-color: var(--neutral-90);
+  --tooltip-border-width: 1px;
+  --tooltip-border-style: solid;
+  --tooltip-border-radius: 10px;
+  --tooltip-shadow: rgba(22, 62, 89, 0.15);
+  --arrow-size: 12px;
+  --offset: 10px;
+  background: var(--tooltip-background);
+  border: 1px solid var(--tooltip-border-color);
+  color: var(--tooltip-content-color);
+  border-radius: var(--tooltip-border-radius);
+  box-shadow: 0 5px 10px var(--tooltip-shadow);
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  min-width: 80px;
+  padding: 16px 20px;
+  position: absolute;
+  text-align: center;
+  z-index: 1000;
+}
+.tooltip:hover {
   background: rebeccapurple;
 }
-/*#tooltip::after {
+.tooltip::before {
   content: '';
   display: block;
-  background: rgba(0,0,0,.1);
-  width: calc(100% + 10px);
-  height: calc(100% + 10px);
+  background: transparent;
+  width:  calc(100% + var(--offset)*2);
+  height: calc(100% + var(--offset)*2);
   position: absolute;
-  left: -5px;
-  top: -5px;
-  z-index: 1;
-}*/
+  top: calc(var(--offset) * -1);
+  left: calc(var(--offset) *-1);
+  z-index: -1;
+}
+
+.tooltip-arrow {
+  position: absolute;
+  background: var(--tooltip-background);
+  width: var(--arrow-size);
+  height: var(--arrow-size);
+  transform: rotate(45deg);
+}
+
+:slotted(p) {
+  margin: 0;
+}
 
 #arrow {
   width: 0;

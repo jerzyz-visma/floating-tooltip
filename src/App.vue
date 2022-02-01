@@ -6,26 +6,47 @@ import Tooltip from './components/Tooltip.vue'
 
 <template>
   <h1>Tooltip test</h1>
-	<Tooltip/>
+
+  <Tooltip variant="warning">
+    <button>Tooltip trigger</button>
+    <template #content>
+      <p>Named scoped Tooltip content <a href="#">link</a></p>
+    </template>
+  </Tooltip>
 </template>
 
 <style>
+:root {
+  --neutral-05: #fff;
+  --neutral-70: #959799;
+  --neutral-90: #252626;
+  --orange-05: #fffcf5;
+  --orange-40: #ffcf8b;
+  --orange-50: #ffc46f;
+  --orange-90: #b35300;
+  --red-05: #fff2f3;
+  --red-70: #d93644;
+  --red-80: #d11525;
+}
 html, body, #app {
   height: 100%;
   min-height: 100vh;
 }
+
 body {
   position: relative;
   margin: 0;
 }
+
 h1 {
-  margin: 0;
+  margin: 0 0 100px 0;
 }
+
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Open Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
+  max-width: 1000px;
+  margin: auto
 }
 </style>
