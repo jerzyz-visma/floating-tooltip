@@ -1,6 +1,6 @@
-import { onMounted, onUnmounted, ref, watchEffect } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 
-function useWindowResize() {
+export function useWindowResize() {
   const width = ref(0);
   const height = ref(0);
 

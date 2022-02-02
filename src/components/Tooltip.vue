@@ -1,50 +1,64 @@
 <template>
-  <div
-    class="tooltip-trigger"
+  <component
+    :is="triggerTag"
     ref="triggerRef"
     aria-describedby="tooltip"
-    @click="onClick"
-    @mouseenter="onHover"
-    @mouseout="onLeave"
-
+    class="tooltip-trigger"
+    @click="onToggle"
+    @mouseenter="onMouseEnter"
+    @mouseout="onMouseOut"
   >
-    <slot />
-  </div>
+    <slot/>
+  </component>
   <teleport to="body">
     <transition name="fade">
       <div
         v-if="isOpened"
-        class="tooltip"
         ref="tooltipRef"
-        role="tooltip"
-        @mouseenter="onHover"
-        @mouseout="onLeave"
-        :style="cssVars"
         :class="classes"
+        :style="cssVars"
+        class="tooltip"
+        role="tooltip"
+        @mouseenter="onMouseEnter"
+        @mouseout="onMouseOut"
       >
-        <slot name="content">Default Tooltip content</slot>
-        <div class="arrow" ref="arrowRef" />
+        <slot name="content">Default content</slot>
+        <div ref="arrowRef" class="arrow"/>
       </div>
     </transition>
   </teleport>
 </template>
 
-<script setup lang="ts">
-import { computed, nextTick, onMounted, onRenderTriggered, ref, toRefs, watch, watchEffect } from "vue";
-import { arrow, computePosition, shift, flip, offset } from '@floating-ui/dom';
-import useWindowResize from "../hooks/useWindowResize";
+<script lang="ts" setup>
+import { computed, nextTick, onMounted, onUnmounted, PropType, ref, watch } from "vue";
+import { arrow, computePosition, flip, offset, shift } from '@floating-ui/dom';
+import { MiddlewareData, Placement } from '@floating-ui/core'
+import useWindowResize from "./useWindowResize";
 
-interface Props {
-  variant?: string,
-  offsetProp?: number,
-  placementProp?: string,
-}
-type Variants = ''|'error'|'warning'|'action'
+type Trigger = 'hover' | 'focus' | 'toggle';
+type Variant = '' | 'error' | 'warning' | 'action'
 
-const { variant, offsetProp = 10, placementProp = 'top'} = defineProps<Props>()
-
-// const { offsetProp, placementProp } = toRefs(props);
-const { width, height } = useWindowResize();
+const {offsetProp, placementProp, trigger, triggerTag, variant} = defineProps({
+  offsetProp: {
+    type: Number,
+    default: 10
+  },
+  placementProp: {
+    type: String as PropType<Placement>,
+    default: 'top'
+  },
+  trigger: {
+    type: [String, Array] as PropType<Trigger | Trigger[]>,
+    default: () => ["hover", "focus"]
+  },
+  triggerTag: {
+    type: String,
+    default: 'span'
+  },
+  variant: {
+    type: String as PropType<Variant>,
+  },
+})
 
 const triggerRef = ref<HTMLElement | null>(null);
 const tooltipRef = ref<HTMLElement | null>(null);
@@ -62,18 +76,18 @@ const classes = computed(() => {
 });
 
 async function updatePosition() {
-  if (!triggerRef.value || !tooltipRef.value) return
-  console.log(arrowRef.value)
-  const { x, y, placement, middlewareData } = await computePosition(
+  if (!triggerRef.value || !tooltipRef.value || !arrowRef.value) return
+
+  const {x, y, placement, middlewareData} = await computePosition(
     triggerRef.value,
     tooltipRef.value,
     {
-      placement: placementProp,
+      placement: placementProp || 'top',
       middleware: [
         offset(offsetProp), // Middleware behavior is dependent on order.
         flip(),
-        shift({ padding: 5 }),
-        arrow({ element: arrowRef.value })
+        shift({padding: 5}),
+        arrow({element: arrowRef.value})
       ]
     }
   );
@@ -83,14 +97,15 @@ async function updatePosition() {
     top: `${y}px`,
   });
 
-  const { x: arrowX, y: arrowY } = middlewareData.arrow;
+  const arrowX = (middlewareData as MiddlewareData)?.arrow?.x || ''
+  const arrowY = (middlewareData as MiddlewareData)?.arrow?.y || ''
 
-  const staticSide = {
+  const staticSide: string = ({
     top: 'bottom',
     right: 'left',
     bottom: 'top',
     left: 'right',
-  }[placement.split('-')[0]];
+  }[placement.split('-')[0]] as string);
 
   Object.assign(arrowRef.value.style, {
     left: arrowX != null ? `${arrowX}px` : '',
@@ -106,15 +121,15 @@ const getParentList = (element: HTMLElement): HTMLElement[] =>
     ? []
     : [element.parentElement].concat(getParentList(element.parentElement));
 
-async function onClick() {
+function onToggle() {
   isOpened.value = !isOpened.value
 }
 
-function onHover(event: MouseEvent) {
+function onMouseEnter(event: MouseEvent) {
   isOpened.value = true
 }
 
-function onLeave(event: MouseEvent) {
+function onMouseOut(event: MouseEvent) {
   const parentList = getParentList(event.relatedTarget as HTMLElement)
 
   const isTooltipHovered = parentList.some(
@@ -122,6 +137,16 @@ function onLeave(event: MouseEvent) {
   ) || event.relatedTarget === tooltipRef.value
 
   if (isTooltipHovered) return;
+  isOpened.value = false;
+}
+
+function onFocus(event: FocusEvent) {
+  console.log('focus')
+  isOpened.value = true
+}
+
+function onBlur(event: FocusEvent) {
+  console.log('blur')
   isOpened.value = false;
 }
 
@@ -133,6 +158,8 @@ watch(isOpened, (value) => {
   }
 })
 
+const {width, height} = useWindowResize();
+
 watch([width, height], () => {
   if (isOpened.value) {
     nextTick(() => {
@@ -141,19 +168,52 @@ watch([width, height], () => {
   }
 })
 
-onMounted( () => {
-  console.log("props", offsetProp.value, placementProp.value)
+function handleTriggers() {
+  [].concat(trigger).forEach((t: Trigger) => {
+    switch (t) {
+      case "toggle": {
+        if (!triggerRef.value) return;
+        console.log('toggle listener');
+        triggerRef.value.addEventListener("click", onToggle);
+        break;
+      }
+
+      case "hover": {
+        if (!triggerRef.value || !tooltipRef.value) return;
+
+        triggerRef.value.addEventListener("mouseenter", onMouseEnter)
+        triggerRef.value.addEventListener("mouseout", onMouseOut)
+        tooltipRef.value.addEventListener("mouseenter", onMouseEnter)
+        tooltipRef.value.addEventListener("mouseout", onMouseOut)
+        break;
+      }
+
+      case "focus": {
+        if (!triggerRef.value) return;
+
+        triggerRef.value.addEventListener("focus", onFocus);
+        triggerRef.value.addEventListener("blur", onBlur);
+        break;
+      }
+    }
+  });
+}
+
+onMounted(() => {
+  // handleTriggers();
 })
 
-onRenderTriggered(() => {
-  console.log('render triggered');
-})
+onUnmounted(() => {
+  // controller.abort();
+  // documentController?.abort();
+});
 </script>
 
 <style scoped>
 .tooltip-trigger {
   display: inline-block;
 }
+
 .tooltip {
   --tooltip-background: var(--neutral-05);
   --tooltip-border-color: var(--neutral-70);
@@ -166,10 +226,7 @@ onRenderTriggered(() => {
   --arrow-size: 12px;
   --offset: 10px;
   background: var(--tooltip-background);
-  border:
-    var(--tooltip-border-width)
-    var(--tooltip-border-style)
-    var(--tooltip-border-color);
+  border: var(--tooltip-border-width) var(--tooltip-border-style) var(--tooltip-border-color);
   color: var(--tooltip-content-color);
   border-radius: var(--tooltip-border-radius);
   box-shadow: 0 5px 10px var(--tooltip-shadow);
@@ -181,15 +238,16 @@ onRenderTriggered(() => {
   text-align: center;
   z-index: 1000;
 }
+
 .tooltip::before {
   content: '';
   display: block;
   background: transparent;
-  width:  calc(100% + var(--offset)*2);
-  height: calc(100% + var(--offset)*2);
+  width: calc(100% + var(--offset) * 2);
+  height: calc(100% + var(--offset) * 2);
   position: absolute;
-  top: calc(var(--offset)*-1);
-  left: calc(var(--offset)*-1);
+  top: calc(var(--offset) * -1);
+  left: calc(var(--offset) * -1);
   z-index: -1;
 }
 
@@ -200,10 +258,7 @@ onRenderTriggered(() => {
 .tooltip .arrow {
   position: absolute;
   background: var(--tooltip-background);
-  border:
-    var(--tooltip-border-width)
-    var(--tooltip-border-style)
-    var(--tooltip-border-color);
+  border: var(--tooltip-border-width) var(--tooltip-border-style) var(--tooltip-border-color);
   border-left: none;
   border-top: none;
   width: var(--arrow-size);
@@ -214,6 +269,7 @@ onRenderTriggered(() => {
 :slotted(p) {
   margin: 0;
 }
+
 :slotted(strong) {
   color: var(--tooltip-title-color);
   display: block;
@@ -233,6 +289,7 @@ onRenderTriggered(() => {
   --tooltip-title-color: var(--red-80);
   --tooltip-shadow: rgba(217, 54, 68, 0.15);
 }
+
 .tooltip-action {
   --tooltip-background: var(--neutral-90);
   --tooltip-border-color: var(--neutral-90);
@@ -243,7 +300,7 @@ onRenderTriggered(() => {
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.5s ease;
+  transition: opacity 0.2s ease;
 }
 
 .fade-enter-from,

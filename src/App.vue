@@ -1,22 +1,21 @@
 <script setup>
 // This starter template is using Vue 3 <script setup> SFCs
 // Check out https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup
-import Tooltip from './components/Tooltip.vue'
-</script>
+import Tooltip from './components/Tooltip.vue'</script>
 
 <template>
   <h1>Tooltip test</h1>
 
   <Tooltip>
-    <button>Show default tooltip</button>
+    Click default tooltip
     <template #content>
       <strong>Tooltip title</strong>
       <p>Default Tooltip <a href="#">link</a></p>
     </template>
   </Tooltip>
   <br><br><br><br>
-  <Tooltip variant="warning">
-    <button>Show warning tooltip</button>
+  <Tooltip triggerTag="button" variant="warning">
+    Show warning tooltip
     <template #content>
       <strong>Tooltip title</strong>
       <p>Warning Tooltip <a href="#">link</a></p>
@@ -24,7 +23,7 @@ import Tooltip from './components/Tooltip.vue'
   </Tooltip>
   <br><br><br><br>
   <Tooltip variant="error">
-    <button>Show error tooltip</button>
+    Show error tooltip
     <template #content>
       <strong>Tooltip title</strong>
       <p>Error Tooltip <a href="#">link</a></p>
@@ -32,7 +31,7 @@ import Tooltip from './components/Tooltip.vue'
   </Tooltip>
   <br><br><br><br>
   <Tooltip variant="action">
-    <button>Show action tooltip</button>
+    Show action tooltip
     <template #content>
       <p>Action Tooltip <a href="#">link</a></p>
     </template>
@@ -52,6 +51,7 @@ import Tooltip from './components/Tooltip.vue'
   --red-70: #d93644;
   --red-80: #d11525;
 }
+
 html, body, #app {
   height: 100%;
   min-height: 100vh;
