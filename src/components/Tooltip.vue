@@ -116,17 +116,21 @@ async function updatePosition() {
   })
 }
 
+function toggleVisibility(isOn: boolean) {
+  isOpened.value = isOn
+}
+
 const getParentList = (element: HTMLElement): HTMLElement[] =>
   element.parentElement === null
     ? []
     : [element.parentElement].concat(getParentList(element.parentElement));
 
 function onToggle() {
-  isOpened.value = !isOpened.value
+  toggleVisibility(!isOpened.value)
 }
 
 function onMouseEnter(event: MouseEvent) {
-  isOpened.value = true
+  toggleVisibility(true)
 }
 
 function onMouseOut(event: MouseEvent) {
@@ -137,17 +141,15 @@ function onMouseOut(event: MouseEvent) {
   ) || event.relatedTarget === tooltipRef.value
 
   if (isTooltipHovered) return;
-  isOpened.value = false;
+  toggleVisibility(false)
 }
 
 function onFocus(event: FocusEvent) {
-  console.log('focus')
-  isOpened.value = true
+  toggleVisibility(true)
 }
 
 function onBlur(event: FocusEvent) {
-  console.log('blur')
-  isOpened.value = false;
+  toggleVisibility(false)
 }
 
 watch(isOpened, (value) => {
@@ -158,6 +160,7 @@ watch(isOpened, (value) => {
   }
 })
 
+// Resize window
 const {width, height} = useWindowResize();
 
 watch([width, height], () => {
@@ -169,11 +172,10 @@ watch([width, height], () => {
 })
 
 function handleTriggers() {
-  [].concat(trigger).forEach((t: Trigger) => {
+  ([] as Trigger[]).concat(trigger).forEach((t: Trigger) => {
     switch (t) {
       case "toggle": {
         if (!triggerRef.value) return;
-        console.log('toggle listener');
         triggerRef.value.addEventListener("click", onToggle);
         break;
       }
@@ -202,7 +204,7 @@ function handleTriggers() {
 onMounted(() => {
   handleTriggers();
   document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.code === 'Escape') isOpened.value = false
+    if (e.code === 'Escape') toggleVisibility(false)
   })
 })
 
