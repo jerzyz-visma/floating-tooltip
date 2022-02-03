@@ -64,15 +64,47 @@ const triggerRef = ref<HTMLElement | null>(null);
 const tooltipRef = ref<HTMLElement | null>(null);
 const arrowRef = ref<HTMLElement | null>(null);
 const isOpened = ref(false)
+const controller = new AbortController();
 
-const cssVars = computed(() =>
-  `--offset: ${offsetProp}px`
-);
+function handleTriggers() {
+  ([] as Trigger[]).concat(trigger).forEach((t: Trigger) => {
+    switch (t) {
+      case "toggle": {
+        if (!triggerRef.value) return;
+        triggerRef.value.addEventListener("click", onToggle);
+        break;
+      }
 
-const classes = computed(() => {
-  return {
-    [`tooltip-${variant}`]: Boolean(variant)
-  }
+      case "hover": {
+        if (!triggerRef.value || !tooltipRef.value) return;
+
+        triggerRef.value.addEventListener("mouseenter", onMouseEnter)
+        triggerRef.value.addEventListener("mouseout", onMouseOut)
+        tooltipRef.value.addEventListener("mouseenter", onMouseEnter)
+        tooltipRef.value.addEventListener("mouseout", onMouseOut)
+        break;
+      }
+
+      case "focus": {
+        if (!triggerRef.value) return;
+
+        triggerRef.value.addEventListener("focus", onFocus);
+        triggerRef.value.addEventListener("blur", onBlur);
+        break;
+      }
+    }
+  });
+}
+
+onMounted(() => {
+  handleTriggers();
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.code === 'Escape') toggleVisibility(false)
+  }, {signal: controller.signal})
+})
+
+onUnmounted(() => {
+  controller.abort();
 });
 
 async function updatePosition() {
@@ -115,6 +147,16 @@ async function updatePosition() {
     [staticSide]: '-7px' // dependent on arrow side, adjust manually
   })
 }
+
+const cssVars = computed(() =>
+  `--offset: ${offsetProp}px`
+);
+
+const classes = computed(() => {
+  return {
+    [`tooltip-${variant}`]: Boolean(variant)
+  }
+});
 
 function toggleVisibility(isOn: boolean) {
   isOpened.value = isOn
@@ -170,48 +212,6 @@ watch([width, height], () => {
     })
   }
 })
-
-function handleTriggers() {
-  ([] as Trigger[]).concat(trigger).forEach((t: Trigger) => {
-    switch (t) {
-      case "toggle": {
-        if (!triggerRef.value) return;
-        triggerRef.value.addEventListener("click", onToggle);
-        break;
-      }
-
-      case "hover": {
-        if (!triggerRef.value || !tooltipRef.value) return;
-
-        triggerRef.value.addEventListener("mouseenter", onMouseEnter)
-        triggerRef.value.addEventListener("mouseout", onMouseOut)
-        tooltipRef.value.addEventListener("mouseenter", onMouseEnter)
-        tooltipRef.value.addEventListener("mouseout", onMouseOut)
-        break;
-      }
-
-      case "focus": {
-        if (!triggerRef.value) return;
-
-        triggerRef.value.addEventListener("focus", onFocus);
-        triggerRef.value.addEventListener("blur", onBlur);
-        break;
-      }
-    }
-  });
-}
-
-onMounted(() => {
-  handleTriggers();
-  document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.code === 'Escape') toggleVisibility(false)
-  })
-})
-
-onUnmounted(() => {
-  // controller.abort();
-  // documentController?.abort();
-});
 </script>
 
 <style scoped>
