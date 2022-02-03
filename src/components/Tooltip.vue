@@ -3,7 +3,7 @@
     :is="triggerTag"
     ref="triggerRef"
     aria-describedby="tooltip"
-    class="tooltip-trigger"
+    tabindex="0"
     @click="onToggle"
     @mouseenter="onMouseEnter"
     @mouseout="onMouseOut"
@@ -200,7 +200,10 @@ function handleTriggers() {
 }
 
 onMounted(() => {
-  // handleTriggers();
+  handleTriggers();
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.code === 'Escape') isOpened.value = false
+  })
 })
 
 onUnmounted(() => {
@@ -210,10 +213,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.tooltip-trigger {
-  display: inline-block;
-}
-
 .tooltip {
   --tooltip-background: var(--neutral-05);
   --tooltip-border-color: var(--neutral-70);
