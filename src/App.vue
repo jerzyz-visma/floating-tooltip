@@ -10,11 +10,11 @@ import Tooltip from './components/Tooltip.vue'</script>
     Click default tooltip
     <template #content>
       <strong>Tooltip title</strong>
-      <p>Default Tooltip <a href="#">link</a></p>
+      <p>Default Tooltip <a href="#" tabindex="5">link</a></p>
     </template>
   </Tooltip>
   <br><br><br><br>
-  <Tooltip triggerTag="button" variant="warning">
+  <Tooltip hasTransition triggerTag="button" variant="warning">
     Show warning tooltip
     <template #content>
       <strong>Tooltip title</strong>

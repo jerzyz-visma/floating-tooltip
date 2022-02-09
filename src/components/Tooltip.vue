@@ -2,24 +2,24 @@
   <component
     :is="triggerTag"
     ref="triggerRef"
-    aria-describedby="tooltip"
+    :aria-describedby="tooltipId"
     tabindex="0"
-    @click="onToggle"
-    @mouseenter="onMouseEnter"
+    @blur="onHide"
+    @focus="onShow"
+    @mouseenter="onShow"
     @mouseout="onMouseOut"
   >
     <slot/>
   </component>
   <teleport to="body">
-    <transition name="fade">
+    <transition :name="hasTransition ? 'fade' : ''">
       <div
         v-if="isOpened"
+        :id="tooltipId"
         ref="tooltipRef"
         :class="classes"
         :style="cssVars"
-        class="tooltip"
-        role="tooltip"
-        @mouseenter="onMouseEnter"
+        @mouseenter="onShow"
         @mouseout="onMouseOut"
       >
         <slot name="content">Default content</slot>
@@ -33,12 +33,17 @@
 import { computed, nextTick, onMounted, onUnmounted, PropType, ref, watch } from "vue";
 import { arrow, computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { MiddlewareData, Placement } from '@floating-ui/core'
+import { generateId } from "./helpers";
 import useWindowResize from "./useWindowResize";
 
-type Trigger = 'hover' | 'focus' | 'toggle';
+type Trigger = 'hover' | 'focus';
 type Variant = '' | 'error' | 'warning' | 'action'
 
-const {offsetProp, placementProp, trigger, triggerTag, variant} = defineProps({
+const {hasTransition, offsetProp, placementProp, trigger, triggerTag, variant} = defineProps({
+  hasTransition: {
+    type: Boolean,
+    default: false
+  },
   offsetProp: {
     type: Number,
     default: 10
@@ -60,51 +65,18 @@ const {offsetProp, placementProp, trigger, triggerTag, variant} = defineProps({
   },
 })
 
+const isOpened = ref(false)
 const triggerRef = ref<HTMLElement | null>(null);
 const tooltipRef = ref<HTMLElement | null>(null);
 const arrowRef = ref<HTMLElement | null>(null);
-const isOpened = ref(false)
-const controller = new AbortController();
 
-function handleTriggers() {
-  ([] as Trigger[]).concat(trigger).forEach((t: Trigger) => {
-    switch (t) {
-      case "toggle": {
-        if (!triggerRef.value) return;
-        triggerRef.value.addEventListener("click", onToggle);
-        break;
-      }
+let documentController: AbortController;
 
-      case "hover": {
-        if (!triggerRef.value || !tooltipRef.value) return;
-
-        triggerRef.value.addEventListener("mouseenter", onMouseEnter)
-        triggerRef.value.addEventListener("mouseout", onMouseOut)
-        tooltipRef.value.addEventListener("mouseenter", onMouseEnter)
-        tooltipRef.value.addEventListener("mouseout", onMouseOut)
-        break;
-      }
-
-      case "focus": {
-        if (!triggerRef.value) return;
-
-        triggerRef.value.addEventListener("focus", onFocus);
-        triggerRef.value.addEventListener("blur", onBlur);
-        break;
-      }
-    }
-  });
-}
 
 onMounted(() => {
-  handleTriggers();
-  document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.code === 'Escape') toggleVisibility(false)
-  }, {signal: controller.signal})
 })
 
 onUnmounted(() => {
-  controller.abort();
 });
 
 async function updatePosition() {
@@ -116,7 +88,7 @@ async function updatePosition() {
     {
       placement: placementProp || 'top',
       middleware: [
-        offset(offsetProp), // Middleware behavior is dependent on order.
+        offset(offsetProp),
         flip(),
         shift({padding: 5}),
         arrow({element: arrowRef.value})
@@ -148,18 +120,29 @@ async function updatePosition() {
   })
 }
 
-const cssVars = computed(() =>
-  `--offset: ${offsetProp}px`
-);
+const cssVars = computed(() => {
+  return {
+    ['--offset']: `${offsetProp}px`
+  }
+});
 
 const classes = computed(() => {
   return {
+    ['tooltip']: true,
     [`tooltip-${variant}`]: Boolean(variant)
   }
 });
 
+const tooltipId = computed(() => {
+  return `tooltip-${generateId()}`
+})
+
 function toggleVisibility(isOn: boolean) {
   isOpened.value = isOn
+}
+
+function handleEscape({code}: KeyboardEvent) {
+  if (code === "Escape") toggleVisibility(false);
 }
 
 const getParentList = (element: HTMLElement): HTMLElement[] =>
@@ -167,11 +150,7 @@ const getParentList = (element: HTMLElement): HTMLElement[] =>
     ? []
     : [element.parentElement].concat(getParentList(element.parentElement));
 
-function onToggle() {
-  toggleVisibility(!isOpened.value)
-}
-
-function onMouseEnter(event: MouseEvent) {
+function onShow(event: MouseEvent | FocusEvent) {
   toggleVisibility(true)
 }
 
@@ -183,14 +162,10 @@ function onMouseOut(event: MouseEvent) {
   ) || event.relatedTarget === tooltipRef.value
 
   if (isTooltipHovered) return;
-  toggleVisibility(false)
+  onHide()
 }
 
-function onFocus(event: FocusEvent) {
-  toggleVisibility(true)
-}
-
-function onBlur(event: FocusEvent) {
+function onHide() {
   toggleVisibility(false)
 }
 
@@ -225,7 +200,7 @@ watch([width, height], () => {
   --tooltip-border-radius: 10px;
   --tooltip-shadow: rgba(22, 62, 89, 0.15);
   --arrow-size: 12px;
-  --offset: 10px;
+  --offset: v-bind(offsetProp);
   background: var(--tooltip-background);
   border: var(--tooltip-border-width) var(--tooltip-border-style) var(--tooltip-border-color);
   color: var(--tooltip-content-color);
