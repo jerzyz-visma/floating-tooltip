@@ -23,7 +23,9 @@
         @mouseout="onMouseOut"
       >
         <slot name="content">Default content</slot>
-        <div ref="arrowRef" class="arrow"/>
+        <svg ref="arrowRef" fill="none" height="16" viewBox="0 0 26 16" width="26" xmlns="http://www.w3.org/2000/svg">
+          <path class="arrow" d="M25 1H1V5C9 5 7 15 13 15C19 15 17 5 25 5V1Z" stroke-dasharray="0 31 28 0"/>
+        </svg>
       </div>
     </transition>
   </teleport>
@@ -116,7 +118,7 @@ async function updatePosition() {
     top: arrowY != null ? `${arrowY}px` : '',
     right: '',
     bottom: '',
-    [staticSide]: '-7px' // dependent on arrow side, adjust manually
+    [staticSide]: '-11px' // dependent on arrow side, adjust manually
   })
 }
 
@@ -145,24 +147,14 @@ function handleEscape({code}: KeyboardEvent) {
   if (code === "Escape") toggleVisibility(false);
 }
 
-const getParentList = (element: HTMLElement): HTMLElement[] =>
-  element.parentElement === null
-    ? []
-    : [element.parentElement].concat(getParentList(element.parentElement));
-
 function onShow(event: MouseEvent | FocusEvent) {
   toggleVisibility(true)
 }
 
 function onMouseOut(event: MouseEvent) {
-  const parentList = getParentList(event.relatedTarget as HTMLElement)
-
-  const isTooltipHovered = parentList.some(
-    (el) => el === tooltipRef.value || el === triggerRef.value
-  ) || event.relatedTarget === tooltipRef.value
-
-  if (isTooltipHovered) return;
-  onHide()
+  if (!tooltipRef.value?.contains(event.relatedTarget as HTMLElement)) {
+    onHide()
+  }
 }
 
 function onHide() {
@@ -231,15 +223,16 @@ watch([width, height], () => {
   text-align: left;
 }
 
-.tooltip .arrow {
+.tooltip svg {
+  display: inline-block;
   position: absolute;
-  background: var(--tooltip-background);
-  border: var(--tooltip-border-width) var(--tooltip-border-style) var(--tooltip-border-color);
-  border-left: none;
-  border-top: none;
-  width: var(--arrow-size);
-  height: var(--arrow-size);
-  transform: rotate(45deg);
+  transform: translateX(-50%);
+}
+
+.arrow {
+  fill: var(--tooltip-background);
+  stroke: var(--tooltip-border-color);
+  stroke-width: var(--tooltip-border-width)
 }
 
 :slotted(p) {
