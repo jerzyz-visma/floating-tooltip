@@ -23,8 +23,10 @@
         @mouseout="onMouseOut"
       >
         <slot name="content">Default content</slot>
-        <svg ref="arrowRef" fill="none" height="16" viewBox="0 0 26 16" width="26" xmlns="http://www.w3.org/2000/svg">
-          <path class="arrow" d="M25 1H1V5C9 5 7 15 13 15C19 15 17 5 25 5V1Z" stroke-dasharray="0 31 28 0"/>
+        <svg ref="arrowRef" fill="none" height="16" viewBox="0 0 26 16" width="26"
+             xmlns="http://www.w3.org/2000/svg">
+          <path class="arrow" d="M25 1H1V5C9 5 7 15 13 15C19 15 17 5 25 5V1Z"
+                stroke-dasharray="0 31 28 0"/>
         </svg>
       </div>
     </transition>
@@ -71,9 +73,7 @@ const isOpened = ref(false)
 const triggerRef = ref<HTMLElement | null>(null);
 const tooltipRef = ref<HTMLElement | null>(null);
 const arrowRef = ref<HTMLElement | null>(null);
-
-let documentController: AbortController;
-
+const position = ref<Placement | null>(null);
 
 onMounted(() => {
 })
@@ -98,6 +98,8 @@ async function updatePosition() {
     }
   );
 
+  position.value = placement;
+
   Object.assign(tooltipRef.value.style, {
     left: `${x}px`,
     top: `${y}px`,
@@ -113,12 +115,20 @@ async function updatePosition() {
     left: 'right',
   }[placement.split('-')[0]] as string);
 
+
+  const arrowAdjustments = {
+    top: '-11px',
+    bottom: '-11px',
+    right: '-16px',
+    left: '-16px',
+  }
+
   Object.assign(arrowRef.value.style, {
     left: arrowX != null ? `${arrowX}px` : '',
     top: arrowY != null ? `${arrowY}px` : '',
     right: '',
     bottom: '',
-    [staticSide]: '-11px' // dependent on arrow side, adjust manually
+    [staticSide]: arrowAdjustments[staticSide] // dependent on arrow side, adjust manually
   })
 }
 
@@ -131,7 +141,8 @@ const cssVars = computed(() => {
 const classes = computed(() => {
   return {
     ['tooltip']: true,
-    [`tooltip-${variant}`]: Boolean(variant)
+    [`tooltip-${variant}`]: Boolean(variant),
+    [`tooltip-${position.value}`]: Boolean(position.value)
   }
 });
 
@@ -226,13 +237,26 @@ watch([width, height], () => {
 .tooltip svg {
   display: inline-block;
   position: absolute;
-  transform: translateX(-50%);
+  transform-origin: center;
 }
+
+.tooltip-left svg {
+  transform: rotate(-90deg) translateX(16px);
+}
+
+.tooltip-bottom svg {
+  transform: rotate(180deg)
+}
+
+.tooltip-right svg {
+  transform: rotate(90deg) translateX(-22px)
+}
+
 
 .arrow {
   fill: var(--tooltip-background);
   stroke: var(--tooltip-border-color);
-  stroke-width: var(--tooltip-border-width)
+  stroke-width: var(--tooltip-border-width);
 }
 
 :slotted(p) {
@@ -264,7 +288,7 @@ watch([width, height], () => {
   --tooltip-border-color: var(--neutral-90);
   --tooltip-title-color: var(--neutral-05);
   --tooltip-content-color: var(--neutral-05);
-  padding: 6px 12px;
+  padding: 8px 12px;
 }
 
 .fade-enter-active,

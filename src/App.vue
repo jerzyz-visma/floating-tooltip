@@ -6,7 +6,7 @@ import Tooltip from './components/Tooltip.vue'</script>
 <template>
   <h1>Tooltip test</h1>
 
-  <Tooltip>
+  <Tooltip placementProp="top">
     Click default tooltip
     <template #content>
       <strong>Tooltip title</strong>
@@ -14,7 +14,7 @@ import Tooltip from './components/Tooltip.vue'</script>
     </template>
   </Tooltip>
   <br><br><br><br>
-  <Tooltip hasTransition triggerTag="button" variant="warning">
+  <Tooltip hasTransition placementProp="bottom" triggerTag="button" variant="warning">
     Show warning tooltip
     <template #content>
       <strong>Tooltip title</strong>
@@ -22,7 +22,7 @@ import Tooltip from './components/Tooltip.vue'</script>
     </template>
   </Tooltip>
   <br><br><br><br>
-  <Tooltip variant="error">
+  <Tooltip placementProp="right" variant="error">
     Show error tooltip
     <template #content>
       <strong>Tooltip title</strong>
@@ -30,7 +30,7 @@ import Tooltip from './components/Tooltip.vue'</script>
     </template>
   </Tooltip>
   <br><br><br><br>
-  <Tooltip variant="action">
+  <Tooltip placementProp="left" variant="action">
     Show action tooltip
     <template #content>
       <p>Action Tooltip <a href="#">link</a></p>
@@ -70,7 +70,7 @@ h1 {
   font-family: 'Open Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  max-width: 1000px;
+  max-width: 400px;
   margin: auto
 }
 </style>
